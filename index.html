@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="Pardeep">
+    <meta name="viewport" content="width=1920, height=1080, user-scalable=no">
+    <title>RTSP Viewer</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============ Camera list (main screen) ============ -->
+<section id="view-cameras" class="view">
+    <header class="cam-header">
+        <div class="cam-title">
+            <img class="app-icon" src="icon.png" alt="">
+            <h1>RTSP Viewer</h1>
+            <div id="cam-page" class="cam-page"></div>
+        </div>
+        <div class="toolbar">
+            <div id="cam-add" class="tool">+ Add camera</div>
+            <div id="cam-edit" class="tool">Manage cameras: off</div>
+            <div id="cam-live" class="tool">Live view: off</div>
+            <div id="cam-view" class="tool">View: 4</div>
+            <div id="cam-about" class="tool">About</div>
+        </div>
+    </header>
+
+    <div class="cam-scroll"><div id="cam-grid" class="cam-grid"></div></div>
+    <div id="cam-empty" class="cam-empty hidden">No cameras yet. Choose Add camera to connect your first RTSP camera or NVR channel.</div>
+
+    <div id="cam-menu" class="cam-menu hidden">
+        <div class="cam-menu-box">
+            <div id="cam-menu-title" class="cam-menu-title"></div>
+            <div id="cam-menu-items"></div>
+        </div>
+    </div>
+
+    <footer>
+        <span id="cam-message"></span>
+        <span class="keys">▲▼◀▶ move &nbsp; OK watch &nbsp; hold OK options &nbsp; CH▲▼ page &nbsp; Green add &nbsp; Yellow edit &nbsp; Blue about &nbsp; RETURN exit</span>
+    </footer>
+</section>
+
+<!-- ============ About ============ -->
+<section id="view-about" class="view hidden">
+    <div class="about-card">
+        <div class="about-head">
+            <img class="about-icon" src="icon.png" alt="">
+            <div>
+                <h1>RTSP Viewer</h1>
+                <div id="about-version" class="about-version">Version 1.0.0</div>
+                <div class="about-tag">Watch your RTSP cameras on your Samsung TV.</div>
+            </div>
+        </div>
+
+        <div class="about-body">
+            <div class="about-text">
+                <h2>Project page</h2>
+                <p class="about-url">https://github.com/PardeepChahal7/RTSP-Viewer</p>
+                <p>Source code, new versions, questions and bug reports. Scan the code to open it.</p>
+                <h2>Made by</h2>
+                <p>Pardeep &nbsp;·&nbsp; MIT license: free to use, change and share.</p>
+                <h2>Good to know</h2>
+                <ul class="about-tips">
+                    <li>Hold OK on a camera to edit, move or remove it.</li>
+                    <li>The Blue key opens this page.</li>
+                    <li id="about-storage"></li>
+                    <li>Everything stays on your network: nothing is sent to the internet.</li>
+                </ul>
+            </div>
+            <div class="about-qr"><img src="qr-repo.png" alt="QR code for the project page"></div>
+        </div>
+
+        <h2>Credits and thanks</h2>
+        <ul class="about-credits">
+            <li><b>Apps2Samsung/ReolinkViewer</b>, the original open-source project this app is built on: github.com/Apps2Samsung/ReolinkViewer. Thank you to its author and contributors.</li>
+            <li><b>mpegts.js</b> by xqq, which plays the video streams.</li>
+            <li><b>Claude</b> by Anthropic, which helped build this version. Thank you, Claude.</li>
+        </ul>
+    </div>
+    <footer>
+        <span></span>
+        <span class="keys">RETURN back</span>
+    </footer>
+</section>
+
+<!-- ============ Add / edit camera ============ -->
+<section id="view-setup" class="view hidden">
+    <header>
+        <h1 id="setup-title">Add camera</h1>
+        <p class="hint">Enter the camera's local IP and login. Use the remote's arrow keys to move, OK to edit. RETURN goes back without saving.</p>
+    </header>
+
+    <div id="form" class="form">
+        <div class="row focusable" data-field="name" data-type="text">
+            <label>Name</label>
+            <input id="f-name" type="text" placeholder="Front door" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="row focusable" data-field="host" data-type="text">
+            <label>Camera / NVR IP address</label>
+            <input id="f-host" type="text" placeholder="192.168.1.50" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="row focusable" data-field="user" data-type="text">
+            <label>Username</label>
+            <input id="f-user" type="text" placeholder="admin" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="row focusable" data-field="password" data-type="text">
+            <label>Password</label>
+            <input id="f-password" type="password" placeholder="password" autocomplete="off">
+            <div class="check" id="f-showpass"><span class="check-box"></span><span class="check-text">Show</span></div>
+            <div class="row-hint">Press ▶ or ◀ to show or hide the password; OK to type it.</div>
+        </div>
+        <div class="row focusable" data-field="mode" data-type="toggle" data-options="rtsp,flv">
+            <label>Connection</label>
+            <div class="value" id="f-mode"></div>
+            <div class="row-hint">HTTP-FLV plays H.264 straight from the camera and works on every TV. RTSP goes through a relay inside the app and also plays H.265 main streams (2018 and newer TVs).</div>
+        </div>
+        <div class="row focusable" data-field="stream" data-type="toggle" data-options="sub,main,ext">
+            <label>Stream</label>
+            <div class="value" id="f-stream"></div>
+            <div class="row-hint">Sub = low bandwidth, works everywhere. Main = full quality; over HTTP-FLV it must be H.264, over RTSP H.265 is fine too.</div>
+        </div>
+        <div class="row focusable" data-field="channel" data-type="stepper" data-min="0" data-max="63">
+            <label>Channel</label>
+            <div class="value" id="f-channel"></div>
+            <div class="row-hint">0 for a standalone camera. On an NVR, the channel number of the camera.</div>
+        </div>
+        <div class="row focusable" data-field="audio" data-type="toggle" data-options="on,off">
+            <label>Audio</label>
+            <div class="value" id="f-audio"></div>
+        </div>
+        <div class="row focusable" data-field="scheme" data-type="toggle" data-options="http,https" data-mode="flv">
+            <label>Protocol</label>
+            <div class="value" id="f-scheme"></div>
+            <div class="row-hint">Keep http unless "HTTPS only" is enabled on the camera.</div>
+        </div>
+        <div class="row focusable" data-field="port" data-type="text" data-mode="flv">
+            <label>HTTP port</label>
+            <input id="f-port" type="text" inputmode="numeric" placeholder="80" autocomplete="off">
+        </div>
+        <div class="row focusable" data-field="rtspPort" data-type="text" data-mode="rtsp">
+            <label>RTSP port</label>
+            <input id="f-rtspPort" type="text" inputmode="numeric" placeholder="554" autocomplete="off">
+        </div>
+        <div class="row focusable" data-field="rtspPath" data-type="text" data-mode="rtsp">
+            <label>RTSP path</label>
+            <input id="f-rtspPath" type="text" placeholder="automatic" autocomplete="off" spellcheck="false">
+            <div class="row-hint">Leave empty: the app tries the h265Preview, h264Preview and Preview paths for the channel and stream above. Fill in a path to override it, for example /live0 for Eufy cameras, or h264Preview_01_main.</div>
+        </div>
+        <div class="row focusable" data-field="rtspPlayer" data-type="toggle" data-options="auto,mse,avplay" data-mode="rtsp">
+            <label>Player</label>
+            <div class="value" id="f-rtspPlayer"></div>
+            <div class="row-hint">Automatic uses the browser player (lowest delay) and switches to the TV player when the browser cannot decode the stream. The TV player runs a few seconds behind live.</div>
+        </div>
+        <div class="row focusable" data-field="autoconnect" data-type="toggle" data-options="off,on">
+            <label>Connect automatically on launch</label>
+            <div class="value" id="f-autoconnect"></div>
+        </div>
+
+        <div class="row button focusable primary" data-action="start">Save and watch</div>
+        <div class="row button focusable" data-action="save">Save</div>
+        <div class="row button focusable danger" data-action="delete" data-existing="1">Delete camera</div>
+    </div>
+
+    <footer>
+        <span id="setup-message"></span>
+        <span class="keys">▲▼ move &nbsp; ◀▶ change &nbsp; OK edit / select &nbsp; RETURN back</span>
+    </footer>
+</section>
+
+<!-- ============ Player screen ============ -->
+<section id="view-player" class="view hidden">
+    <video id="video" playsinline></video>
+    <!-- AVPlay draws on a hardware plane behind the page; this marks its area. -->
+    <object id="av-player" type="application/avplayer" class="hidden"></object>
+
+    <div id="overlay" class="overlay">
+        <div id="now-playing" class="now-playing"></div>
+        <div id="status" class="status">Connecting…</div>
+        <div id="stats" class="stats"></div>
+        <div id="player-keys" class="keys">OK info &nbsp; CH ▲▼ camera &nbsp; RETURN cameras</div>
+    </div>
+</section>
+
+<script src="$WEBAPIS/webapis/webapis.js"></script>
+<script src="js/vendor/mpegts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
