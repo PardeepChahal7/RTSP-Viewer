@@ -1,0 +1,54 @@
+name: Build package
+
+# Two Tizen web app packages (.wgt), both UNSIGNED: a TV only installs a
+# package signed with a certificate bound to that TV, so sign before installing
+# (Apps2Samsung does this for you) or use build.sh --sign with a Tizen Studio
+# profile.
+#   RTSPViewer.wgt            2018+ TVs (Tizen 4.0): HTTP-FLV and RTSP/H.265 relay
+#   RTSPViewer-legacy.wgt     2016-2017 TVs (Tizen 2.4): HTTP-FLV only
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check JavaScript syntax
+        run: |
+          node -e "new Function(require('fs').readFileSync('js/app.js', 'utf8'))"
+          node -e "new Function(require('fs').readFileSync('service/relay.js', 'utf8'))"
+
+      - name: Test the relay service
+        run: node --test tests/relay.test.js
+
+      - name: Test the screens
+        run: node tests/ui/run.js
+
+      - name: Build packages
+        run: bash build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RTSPViewer
+          path: dist/*.wgt
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.wgt
+          generate_release_notes: true
