@@ -135,6 +135,8 @@ Build the packages with `bash build.sh` (see below).
    packages in releases are unsigned, which no TV accepts as-is.
 3. Launch **RTSP Viewer** from the TV's Apps list.
 
+[Also available on Apps2Samsung](https://apps2samsung.com/install/?app=RTSP%20Viewer)
+
 Building and installing by hand with Tizen Studio is covered below.
 
 ## Camera settings
